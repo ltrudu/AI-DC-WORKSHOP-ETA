@@ -8,6 +8,9 @@ material = "1.13.0"
 constraintlayout = "2.1.4"
 activity = "1.9.0"
 camerax = "1.5.1"
+desugar = "2.1.5"
+zebraBarcodeLocalizer = "5.0.2"
+zebraAiDataCapture = "3.1.10"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -23,6 +26,9 @@ androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycl
 androidx-camera-video = { group = "androidx.camera", name = "camera-video", version.ref = "camerax" }
 androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
 androidx-camera-extensions = { group = "androidx.camera", name = "camera-extensions", version.ref = "camerax" }
+desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugar" }
+zebra-barcode-localizer = { group = "com.zebra.ai.models", name = "barcode-localizer", version.ref = "zebraBarcodeLocalizer" }
+zebra-ai-data-capture-sdk = { group = "com.zebra.ai.vision", name = "AI-Data-Capture-SDK", version.ref = "zebraAiDataCapture" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

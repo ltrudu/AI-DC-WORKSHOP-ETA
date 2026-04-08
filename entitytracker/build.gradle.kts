@@ -32,10 +32,19 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true
     }
     buildFeatures {
         viewBinding = true
         buildConfig = true
+    }
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+    androidResources {
+        noCompress += listOf("tar", "tar.crypt")
     }
 }
 
@@ -51,6 +60,10 @@ dependencies {
     implementation(libs.androidx.camera.video)
     implementation(libs.androidx.camera.view)
     implementation(libs.androidx.camera.extensions)
+
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
+    implementation("${libs.zebra.barcode.localizer.get()}@aar")
+    implementation("${libs.zebra.ai.data.capture.sdk.get()}@aar")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
