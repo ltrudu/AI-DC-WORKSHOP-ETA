@@ -22,6 +22,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.camera.camera2.interop.ExperimentalCamera2Interop;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
@@ -40,9 +41,11 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import zebra.BarcodeDetector.databinding.ActivityCameraXactivityBinding;
+
+// 01 - Add necessary imports
+
 
 public class CameraXActivity extends AppCompatActivity {
 
@@ -57,8 +60,6 @@ public class CameraXActivity extends AppCompatActivity {
 
     private ActivityCameraXactivityBinding viewBinding;
 
-    // -103- define a private EntityTrackerAnalyzer entityTrackerAnalyzer;
-
     private ExecutorService workerExecutor;
     public final ExecutorService executor = Executors.newFixedThreadPool(3);
     private SharedPreferences sharedPreferences;
@@ -68,7 +69,9 @@ public class CameraXActivity extends AppCompatActivity {
     private int readCounter = 0;
     private final ArrayDeque<Long> fpsQueue = new ArrayDeque<>(1);
 
-    // -108- bc variable definition: private BarcodeDecoder barcodeDecoder = null;
+    // 02 - define a private EntityTrackerAnalyzer entityTrackerAnalyzer
+
+    // 03 -  define a private BarcodeDecoder barcodeDecoder = null;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -115,8 +118,7 @@ public class CameraXActivity extends AppCompatActivity {
         if (cameraController != null) {
             cameraController.clearImageAnalysisAnalyzer();
         }
-        // -106- uncomment when defining the barcode decoder to properly dispose of it
-        // if (barcodeDecoder != null) { barcodeDecoder.dispose(); barcodeDecoder = null; }
+        // 04 - dispose of barcode decoder when leaving foreground
     }
 
     @Override
@@ -125,8 +127,7 @@ public class CameraXActivity extends AppCompatActivity {
         if (cameraController != null) {
             cameraController.clearImageAnalysisAnalyzer();
         }
-        // -107- uncomment when defining the barcode decoder
-        // if (barcodeDecoder != null) { barcodeDecoder.dispose(); barcodeDecoder = null; }
+        // 05 - dispose of barcode decoder
         if (workerExecutor != null) {
             workerExecutor.shutdown();
         }
@@ -160,10 +161,8 @@ public class CameraXActivity extends AppCompatActivity {
 
         if (isZEBRA) {
             initZETA();
-
-            // -102- setting entityTrackerAnalyzer as current analyzer
-
-            // -109- remove this sample analyzer when adding the -102- eta analyzer
+            
+            // 17 - Comment this sample analyzer when creating the entityTrackerAnalyzer (step 12-16)
             cameraController.setImageAnalysisAnalyzer(
                     workerExecutor,
                     (ImageAnalysis.Analyzer) (ImageProxy imageProxy) -> {
@@ -179,7 +178,9 @@ public class CameraXActivity extends AppCompatActivity {
                         imageProxy.close();
                     });
             Log.i(TAG, "A sample analyzer has been set to show how frames are provisioned to the app.");
-            // end of -109-
+            // end of remove for - 17 -
+
+            // 18 - entityTrackerAnalyzer wiring
         }
     }
 
@@ -257,18 +258,19 @@ public class CameraXActivity extends AppCompatActivity {
     }
 
     private void initZETA() {
-        // -105- here init the AISuite SDK
+        // 06 - Initialize SDK AISuite
 
-        // -104- here prepare the barcode settings
+        // 07 - Creating a barcode decoder settings class for the model "barcode-localizer"
 
-        // try {
-        //     // -100- here instantiate a barcode object.
-        //     // -101- here use entityTrackerAnalyzer: pass the barcode detector
-        //     //       and take care of the decoding results
-        // } catch (IOException e) {
-        //     Log.e(TAG, "Fatal error: load failed - " + e.getMessage());
-        //     CameraXActivity.this.finish();
-        // }
+        // 08 - Setting the order of the hardware use to compute inferences
+
+        // 09 - Setting up model resolution
+
+        // 10 - Setting up Symbologies
+
+        // 11 - BarcodeDecoder instantiation
+
+        // 12 - EntityTracker création
     }
 
     private void setOutputtextInMainThread(final String txt) {
