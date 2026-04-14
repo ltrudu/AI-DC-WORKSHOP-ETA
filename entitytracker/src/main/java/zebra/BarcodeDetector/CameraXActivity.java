@@ -37,6 +37,18 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+// 01 - Add necessary imports
+import androidx.core.content.ContextCompat;
+import java.util.concurrent.ExecutionException;
+
+import com.zebra.ai.vision.analyzer.tracking.EntityTrackerAnalyzer;
+import com.zebra.ai.vision.detector.AIVisionSDK;
+import com.zebra.ai.vision.detector.BarcodeDecoder;
+import com.zebra.ai.vision.detector.InferencerOptions;
+import com.zebra.ai.vision.entity.BarcodeEntity;
+import com.zebra.ai.vision.entity.Entity;
+
+
 import zebra.BarcodeDetector.databinding.ActivityCameraXactivityBinding;
 
 public class CameraXActivity extends AppCompatActivity {
@@ -47,7 +59,6 @@ public class CameraXActivity extends AppCompatActivity {
 
     private ActivityCameraXactivityBinding viewBinding;
 
-    // -103- define a private EntityTrackerAnalyzer entityTrackerAnalyzer;
 
     private ExecutorService workerExecutor;
     public final ExecutorService executor = Executors.newFixedThreadPool(3);
@@ -58,7 +69,11 @@ public class CameraXActivity extends AppCompatActivity {
     private int readCounter = 0;
     private final ArrayDeque<Long> fpsQueue = new ArrayDeque<>(1);
 
-    // -108- bc variable definition: private BarcodeDecoder barcodeDecoder = null;
+    // 02 - define a private EntityTrackerAnalyzer entityTrackerAnalyzer
+    private EntityTrackerAnalyzer entityTrackerAnalyzer;
+
+    // 03 -  define a private BarcodeDecoder barcodeDecoder = null;
+    private BarcodeDecoder barcodeDecoder = null;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -103,8 +118,11 @@ public class CameraXActivity extends AppCompatActivity {
         if (cameraController != null) {
             cameraController.clearImageAnalysisAnalyzer();
         }
-        // -106- uncomment when defining the barcode decoder to properly dispose of it
-        // if (barcodeDecoder != null) { barcodeDecoder.dispose(); barcodeDecoder = null; }
+        // 04 - dispose of barcode decoder when leaving foreground
+        if (barcodeDecoder != null) {
+            barcodeDecoder.dispose();
+            barcodeDecoder = null;
+        }
     }
 
     @Override
@@ -113,15 +131,17 @@ public class CameraXActivity extends AppCompatActivity {
         if (cameraController != null) {
             cameraController.clearImageAnalysisAnalyzer();
         }
-        // -107- uncomment when defining the barcode decoder
-        // if (barcodeDecoder != null) { barcodeDecoder.dispose(); barcodeDecoder = null; }
+        // 05 - dispose of barcode decoder
+        if (barcodeDecoder != null) {
+            barcodeDecoder.dispose();
+            barcodeDecoder = null;
+        }
         if (workerExecutor != null) {
             workerExecutor.shutdown();
         }
     }
 
     private void onClickToggleAnalyzerMode(View view) {
-        // no-op, matches source
     }
 
     @Override
@@ -236,18 +256,78 @@ public class CameraXActivity extends AppCompatActivity {
     }
 
     private void initZETA() {
-        // -105- here init the AISuite SDK
+        // 06 - Initialize SDK AISuite
+        AIVisionSDK.getInstance(getApplicationContext()).init();
+        System.out.println("AISuite SDK v"
+                + AIVisionSDK.getInstance(getApplicationContext()).getSDKVersion() + " just init");
 
-        // -104- here prepare the barcode settings
+        // 07 - Creating a barcode decoder settings class for the model "barcode-localizer"
+        BarcodeDecoder.Settings bdSettings = new BarcodeDecoder.Settings("barcode-localizer");
 
-        // try {
-        //     // -100- here instantiate a barcode object.
-        //     // -101- here use entityTrackerAnalyzer: pass the barcode detector
-        //     //       and take care of the decoding results
-        // } catch (IOException e) {
-        //     Log.e(TAG, "Fatal error: load failed - " + e.getMessage());
-        //     CameraXActivity.this.finish();
-        // }
+        // 08 - Setting the order of the hardware use to compute inferences
+        bdSettings.detectorSetting.inferencerOptions.runtimeProcessorOrder = new Integer[] {
+                InferencerOptions.DSP, InferencerOptions.CPU, InferencerOptions.GPU
+        };
+
+        // 09 - Setting up model resolution
+        bdSettings.detectorSetting.inferencerOptions.defaultDims.height = 640;
+        bdSettings.detectorSetting.inferencerOptions.defaultDims.width = 640;
+
+        // 10 - Setting up Symbologies
+        bdSettings.DisableAllSymbologies();
+        bdSettings.Symbology.CODE128.enable(true);
+        bdSettings.Symbology.EAN13.enable(true);
+
+        // 11 - BarcodeDecoder instantiation
+        try {
+            barcodeDecoder = BarcodeDecoder.getBarcodeDecoder(bdSettings, executor).get();
+        } catch (ExecutionException | InterruptedException e) {
+            Log.e(TAG, "Fatal error: load failed - " + e.getMessage());
+            finish();
+        }
+
+        // 12 - EntityTracker création
+        entityTrackerAnalyzer = new EntityTrackerAnalyzer(
+                Collections.singletonList(barcodeDecoder),
+                ImageAnalysis.COORDINATE_SYSTEM_VIEW_REFERENCED,
+                ContextCompat.getMainExecutor(this),
+                (EntityTrackerAnalyzer.Result result) -> {
+                    // 13 - Results porcessing
+                    // Retrieving the list of decoded entities
+                    BarcodeDecoder local = barcodeDecoder;
+                    if (local == null) return;
+                    List<? extends Entity> entities = result.getValue(local);
+                    if (entities == null) return;
+
+                    // 14 - Iterating through the results
+                    for (Entity e : entities) {
+                        BarcodeEntity itbe = (BarcodeEntity) e;
+                        String itbeTrackIDhex = Integer.toHexString(itbe.hashCode());
+
+                        String value = itbe.getValue();
+                        Log.i("#TRACKER", "#WORKSHOP entityTrackerAnalyzer output value="
+                                + value
+                                + " symbology=" + itbe.getSymbology()
+                                + " label=" + itbe.getLabel()
+                                + " TrackingID=" + itbeTrackIDhex
+                                + " timestamp=" + result.getTimestamp());
+
+                        // 15 - Displaying bounding boxes and read values in Augmented Reality
+                        if (value != null && value.length() > 0) {
+                            readCounter++;
+                            BCEvent bev = new BCEvent(
+                                    itbe.getBoundingBox().centerX(),
+                                    itbe.getBoundingBox().centerY(),
+                                    viewBinding.overlayView.paintRed,
+                                    value,
+                                    itbeTrackIDhex,
+                                    System.currentTimeMillis());
+                            viewBinding.overlayView.clq.push(bev);
+                        }
+                    }
+                    // 16 - Invalidating AR overlay view
+                    viewBinding.overlayView.invalidate();
+                });
     }
 
     private void setOutputtextInMainThread(final String txt) {
@@ -318,6 +398,7 @@ public class CameraXActivity extends AppCompatActivity {
     }
 
     private void requestPermissions() {
+
     }
 
     private String getDeviceDetails() {
