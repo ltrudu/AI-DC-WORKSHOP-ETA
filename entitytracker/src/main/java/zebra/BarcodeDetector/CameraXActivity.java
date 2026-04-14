@@ -1,6 +1,8 @@
 package zebra.BarcodeDetector;
 
+import android.Manifest;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.hardware.camera2.CameraMetadata;
@@ -12,6 +14,7 @@ import android.provider.Settings;
 import android.util.Log;
 import android.util.Size;
 import android.view.View;
+import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import androidx.annotation.NonNull;
@@ -19,6 +22,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.camera.camera2.interop.ExperimentalCamera2Interop;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
@@ -48,7 +52,6 @@ import com.zebra.ai.vision.detector.InferencerOptions;
 import com.zebra.ai.vision.entity.BarcodeEntity;
 import com.zebra.ai.vision.entity.Entity;
 
-
 import zebra.BarcodeDetector.databinding.ActivityCameraXactivityBinding;
 
 public class CameraXActivity extends AppCompatActivity {
@@ -56,6 +59,11 @@ public class CameraXActivity extends AppCompatActivity {
     private static final String TAG = "ZETA-WORSKOP";
     public static boolean isZEBRA = false;
     public static final long VIEW_RESET_PERIOD_MS = 100L;
+
+    private static final int REQUEST_CODE_PERMISSIONS = 10;
+    private static final String[] REQUIRED_PERMISSIONS = new String[] {
+            Manifest.permission.CAMERA
+    };
 
     private ActivityCameraXactivityBinding viewBinding;
 
@@ -105,6 +113,8 @@ public class CameraXActivity extends AppCompatActivity {
         }
 
         workerExecutor = Executors.newSingleThreadExecutor();
+
+        requestPermissions();
     }
 
     @Override
@@ -150,36 +160,49 @@ public class CameraXActivity extends AppCompatActivity {
 
         long timebegin = System.currentTimeMillis();
 
-        setupCameraAndAnalyzers();
-
-        if (isZEBRA) {
-            initZETA();
-
-            // -102- setting entityTrackerAnalyzer as current analyzer
-
-            // -109- remove this sample analyzer when adding the -102- eta analyzer
-            cameraController.setImageAnalysisAnalyzer(
-                    workerExecutor,
-                    (ImageAnalysis.Analyzer) (ImageProxy imageProxy) -> {
-                        long currentTime = System.currentTimeMillis();
-                        Bitmap bitmap = imageProxy.toBitmap();
-                        float rotation = imageProxy.getImageInfo().getRotationDegrees();
-                        Matrix matrix = new Matrix();
-                        matrix.postRotate(rotation);
-                        Bitmap debugBMP = Bitmap.createBitmap(
-                                bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
-                        Log.d(TAG, "#WORKSHOP Frame received at " + currentTime
-                                + " with resolution " + imageProxy.getWidth() + "x" + imageProxy.getHeight());
-                        imageProxy.close();
-                    });
-            Log.i(TAG, "A sample analyzer has been set to show how frames are provisioned to the app.");
-            // end of -109-
+        if (!allPermissionsGranted()) {
+            Log.w(TAG, "CAMERA permission not granted yet, deferring camera setup");
+            return;
         }
+
+        setupCamera();
 
         periodJobOnCanvas(VIEW_RESET_PERIOD_MS);
 
         viewBinding.tvOCRout.setVisibility(View.VISIBLE);
         viewBinding.overlayView.setVisibility(View.VISIBLE);
+    }
+
+    private void setupCamera() {
+        setupCameraAndAnalyzers();
+
+        if (isZEBRA) {
+            initZETA();
+
+            // 17 - Comment this sample analyzer when creating the entityTrackerAnalyzer (step 12-16)
+            // cameraController.setImageAnalysisAnalyzer(
+            //         workerExecutor,
+            //         (ImageAnalysis.Analyzer) (ImageProxy imageProxy) -> {
+            //             long currentTime = System.currentTimeMillis();
+            //             Bitmap bitmap = imageProxy.toBitmap();
+            //             float rotation = imageProxy.getImageInfo().getRotationDegrees();
+            //             Matrix matrix = new Matrix();
+            //             matrix.postRotate(rotation);
+            //             Bitmap debugBMP = Bitmap.createBitmap(
+            //                     bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+            //             Log.d(TAG, "#WORKSHOP Frame received at " + currentTime
+            //                     + " with resolution " + imageProxy.getWidth() + "x" + imageProxy.getHeight());
+            //             imageProxy.close();
+            //         });
+            // Log.i(TAG, "A sample analyzer has been set to show how frames are provisioned to the app.");
+            // end of remove for - 17 -
+
+            // 18 - entityTrackerAnalyzer wiring
+            cameraController.setImageAnalysisAnalyzer(
+                    workerExecutor,
+                    (ImageAnalysis.Analyzer) entityTrackerAnalyzer);
+            Log.i(TAG, "EntityTrackerAnalyzer has been set successfully.");
+        }
     }
 
     private void loadSettings() {
@@ -398,7 +421,38 @@ public class CameraXActivity extends AppCompatActivity {
     }
 
     private void requestPermissions() {
+        if (!allPermissionsGranted()) {
+            ActivityCompat.requestPermissions(
+                    this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS);
+        }
+    }
 
+    private boolean allPermissionsGranted() {
+        for (String permission : REQUIRED_PERMISSIONS) {
+            if (ContextCompat.checkSelfPermission(this, permission)
+                    != PackageManager.PERMISSION_GRANTED) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_CODE_PERMISSIONS) {
+            if (allPermissionsGranted()) {
+                Log.i(TAG, "CAMERA permission granted, starting camera");
+                setupCamera();
+            } else {
+                Toast.makeText(this,
+                        "Camera permission is required to run this app.",
+                        Toast.LENGTH_LONG).show();
+                finish();
+            }
+        }
     }
 
     private String getDeviceDetails() {
