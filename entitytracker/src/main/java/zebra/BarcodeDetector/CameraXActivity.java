@@ -346,7 +346,7 @@ public class CameraXActivity extends AppCompatActivity {
                         : resolutionSelectorHighest);
         cameraController.setZoomRatio((float) OverlayView.ZOOM_RATIO);
 
-        // 2. Link the controller to the PreviewView
+        // 2. Link the controller to the PreviewView to render camera captured frames
         viewBinding.viewFinder.setController(cameraController);
     }
 
