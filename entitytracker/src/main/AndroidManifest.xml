@@ -28,6 +28,12 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="true"
+            android:label="ai-eta-SETTINGS">
+        </activity>
+
     </application>
 
 </manifest>
