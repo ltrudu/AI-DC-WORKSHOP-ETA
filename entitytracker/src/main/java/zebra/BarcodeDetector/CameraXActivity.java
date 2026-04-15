@@ -67,7 +67,6 @@ public class CameraXActivity extends AppCompatActivity {
 
     private ActivityCameraXactivityBinding viewBinding;
 
-
     private ExecutorService workerExecutor;
     public final ExecutorService executor = Executors.newFixedThreadPool(3);
     private SharedPreferences sharedPreferences;
@@ -315,7 +314,7 @@ public class CameraXActivity extends AppCompatActivity {
                 ImageAnalysis.COORDINATE_SYSTEM_VIEW_REFERENCED,
                 ContextCompat.getMainExecutor(this),
                 (EntityTrackerAnalyzer.Result result) -> {
-                    // 13 - Results porcessing
+                    // 13 - Results processing
                     // Retrieving the list of decoded entities
                     BarcodeDecoder local = barcodeDecoder;
                     if (local == null) return;
