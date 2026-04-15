@@ -1,6 +1,7 @@
 package zebra.BarcodeDetector;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -14,6 +15,7 @@ import android.provider.Settings;
 import android.util.Log;
 import android.util.Size;
 import android.view.View;
+import android.widget.Button;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
@@ -98,6 +100,9 @@ public class CameraXActivity extends AppCompatActivity {
         ToggleButton toggle = viewBinding.toggleAnalyzerMode;
         toggle.setOnClickListener(this::onClickToggleAnalyzerMode);
 
+        Button settings = viewBinding.settings;
+        settings.setOnClickListener(this::onClickSettings);
+
         sharedPreferences = getSharedPreferences("SettingsPreferences", MODE_PRIVATE);
         loadSettings();
 
@@ -151,6 +156,11 @@ public class CameraXActivity extends AppCompatActivity {
     }
 
     private void onClickToggleAnalyzerMode(View view) {
+    }
+
+    private void onClickSettings(View view){
+        Intent intent = new Intent(this, SettingsActivity.class);
+        startActivity(intent);
     }
 
     @Override
